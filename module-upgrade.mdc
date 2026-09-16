@@ -1,0 +1,91 @@
+---
+description: upgrade/upgrade-<version>.php when schema or config changes — current config.xml version; no auto bump
+globs: **/install.sql,**/config.xml,**/sql/*.sql,**/upgrade/*.php,**/install.php,**/*.php
+alwaysApply: true
+---
+
+# Module upgrade files
+
+Schema or stored-config changes for **existing shops** need `upgrade/upgrade-<version>.php`. DDL rules: `module-sql.mdc`. Release notes: `module-changelog.mdc`.
+
+## Do NOT bump the module version
+
+**Never** change `<version>` in `config.xml` unless the user explicitly asks for a release.
+
+When schema or config changes:
+
+1. Read the **current** version from `config.xml`.
+2. Create or extend `upgrade/upgrade-<current-version>.php`.
+3. If that file already exists, **append** migration steps — do not invent a higher version.
+
+Version bump = user-requested release: new `config.xml` version, new upgrade file, `CHANGELOG.txt` update.
+
+## When required
+
+| Change | Upgrade script? |
+|---|---|
+| New / altered `install.sql` column or table | **YES** |
+| New `Configuration::updateValue` default in install | **YES** |
+| Removed / renamed config key | **YES** |
+| User-requested version bump | **YES** — file matches **new** version |
+| Translation / template / bugfix only | NO |
+
+## Naming
+
+`config.xml`: `<version><![CDATA[4.5.46]]></version>` → `upgrade/upgrade-4.5.46.php` → `upgrade_module_4_5_46()`.
+
+## Skeleton (idempotent)
+
+Prefer the shared helpers in `upgrade/upgrade.schema.php` (PS 8-safe: no module class autoload).
+
+```php
+<?php
+if (!defined('_PS_VERSION_')) {
+    exit;
+}
+
+require_once dirname(__FILE__) . '/upgrade.schema.php';
+
+function upgrade_module_4_5_46($module)
+{
+    $table = _DB_PREFIX_ . 'cdiscount_product_option';
+
+    if (!amazon_upgrade_table_exists($table)) {
+        return true;
+    }
+
+    if (!amazon_upgrade_column_exists($table, 'pm_title')) {
+        Db::getInstance()->execute(
+            'ALTER TABLE `' . bqSQL($table) . '` ADD COLUMN `pm_title` VARCHAR(255) NULL'
+        );
+    }
+
+    return true;
+}
+```
+
+Inline `information_schema` checks (same idea as the helpers) are fine when a one-off migration does not need the shared file.
+
+Must return `true`, be idempotent, keep `install.sql` in sync.
+
+## PS 8 upgrade context — no module classes
+
+Upgrade scripts run **before** the module autoloader is fully available. On PrestaShop **8.x**, Symfony autoload is strict: calling `AmazonTools::…`, `AmazonSaas::…`, or other namespaced module classes without loading them causes `ClassNotFoundError` (500 on BO upload).
+
+| Do | Don't |
+|---|---|
+| `Db`, `Configuration`, `pSQL`, `bqSQL` | `AmazonTools::tableExists()` / `amazonFieldExists()` |
+| `require_once …/upgrade.schema.php` + `amazon_upgrade_*()` | `use Amazonsaas\Classes\…` without a guaranteed `require_once` |
+| Literal table names: `_DB_PREFIX_ . 'amazon_report_offers'` | `AmazonConstant::…` / `AmazonSaas::TABLE_*` in upgrade files |
+
+If a migration truly needs module code (rare), `require_once` the exact PHP file and use the **fully qualified** class name — never assume global `ClassName`.
+
+## Column order and `AFTER`
+
+When `ALTER TABLE … ADD COLUMN … AFTER other_column`:
+
+1. Check the target column exists before using `AFTER`.
+2. Add dependency columns first (e.g. `delete_sent_at` before `last_seen_in_report_at`).
+3. Fallback: `AFTER status`, or omit `AFTER` entirely (column at end — functionally fine).
+
+Reuse a shared function across upgrade versions when the same schema fix must run for shops that skipped a broken earlier step (e.g. `upgrade_amazon_report_offers_tracking_columns()` in `upgrade-6.3.4.php`, called again from `upgrade-6.3.5.php`).

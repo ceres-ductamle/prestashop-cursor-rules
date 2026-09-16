@@ -1,0 +1,44 @@
+---
+description: PHP 7.4–8.x syntax and runtime compatibility for module code
+globs: **/*.php
+alwaysApply: true
+---
+
+# Module PHP compatibility (7.4 → 8.x)
+
+Module PHP must run on **PHP 7.4 through 8.x**. Write to **PHP 7.4** unless `module-prestashop.mdc` branches for a PrestaShop-specific API.
+
+PrestaShop version guards and core API usage live in `module-prestashop.mdc`.
+
+## PHP 7.4 floor — do NOT use (PHP 8.0+ only)
+
+| Feature | Use instead |
+|---|---|
+| Named arguments `foo(bar: 1)` | Positional arguments |
+| Nullsafe `?->` | `isset($x) ? $x->prop : null` (or early return) |
+| `match` | `switch` |
+| `str_contains` / `str_starts_with` / `str_ends_with` | `strpos(...) !== false` or a shared helper |
+| `readonly`, enums, attributes | Not in module code |
+| Constructor property promotion | Explicit properties + constructor assignment |
+| Union / `mixed` / `never` / intersection types | Docblocks + untyped or single-type hints |
+| First-class callable `strlen(...)` | `function ($s) { return strlen($s); }` |
+
+Trailing commas in **calls and arrays** are fine (PHP 7.3+).
+
+## PHP 7.4 — safe to use
+
+- Short arrays `[...]`, `??`, `??=`, spread `...$x` in arrays
+- Arrow functions `fn ($x) => ...`
+- Typed **properties** and `void` return type
+- `Throwable` in catch blocks
+
+## PHP 8.x runtime — avoid breakage on newer hosts
+
+- Validate `null` before passing to string / array / int parameters — PHP 8.1+ is stricter.
+- Prefer `{$var}` in strings; avoid deprecated `${var}` (removed in 8.2).
+- Cast explicitly when assigning floats to int contexts (8.1+ warnings).
+- Do not rely on dynamic properties on plain classes (deprecated 8.2) — declare properties; `#[\AllowDynamicProperties]` only on legacy wrappers that cannot be refactored safely.
+
+## Optional PHP extensions
+
+Before calling a non-default extension (`imagick`, `intl`, …), guard with `extension_loaded()` and fail with a clear BO message — shops may not have the extension enabled.

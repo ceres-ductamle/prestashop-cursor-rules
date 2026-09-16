@@ -1,0 +1,84 @@
+---
+description: SQL injection prevention; bqSQL/pSQL; Db helpers; module schema DDL
+globs: **/*.php,**/install.sql,**/sql/*.sql,**/upgrade/*.php
+alwaysApply: true
+---
+
+# Module SQL safety
+
+All user- or module-supplied values in SQL must be escaped. **Never** concatenate `$_GET`, `$_POST`, `$_REQUEST`, `$_COOKIE`, or raw API input into a query string.
+
+Input validation: `module-input.mdc`. Paths and constants: `module-paths.mdc`.
+
+Per [PrestaShop good practices](https://devdocs.prestashop-project.org/9/modules/creation/good-practices/) and the [Db class](https://devdocs.prestashop-project.org/9/development/components/database/db/): cast variables and use `pSQL` / `bqSQL`.
+
+## Golden rule — identifiers vs values
+
+| What you escape | Helper | Never use |
+|---|---|---|
+| **Table, column, alias, database name** | `bqSQL($ident)` | `pSQL()` — wrong tool for identifiers |
+| **String literal in `WHERE` / `INSERT` / `UPDATE`** | `pSQL($str)` | bare `$var` in quotes |
+| **Integer / float in SQL** | `(int) $val`, `(float) $val` | `pSQL()` or uncast input |
+| **Boolean / NULL in SQL** | `0` / `1`, or explicit `NULL` | string `'true'` from user input |
+
+**Please use `bqSQL()` for the table's name or the field's name instead of `pSQL()`.**
+
+```php
+// ❌ BAD — pSQL on an identifier
+$db->execute('SELECT * FROM `' . pSQL($_POST['table']) . '`');
+
+// ✅ GOOD
+$db->execute(
+    'SELECT * FROM `' . bqSQL(_DB_PREFIX_ . 'cdiscount_product_option') . '`
+     WHERE `id_product` = ' . (int) $idProduct
+);
+```
+
+Dynamic column names: whitelist, then `bqSQL($column)`.
+
+## Before SQL
+
+Input must pass `Validate` in `module-input.mdc` first. Escaping is not validation.
+
+## Module schema (install / upgrade)
+
+| Rule | Detail |
+|---|---|
+| **Own tables only** | Create module tables; **never** `ALTER` PrestaShop core tables. |
+| **Prefix everything** | `_DB_PREFIX_ . 'mymodule_*'`; config keys `MYMODULE_*`. |
+| **`CREATE TABLE`** | Always `IF NOT EXISTS` in `install.sql` / upgrades. |
+| **`DROP TABLE`** | Always `IF EXISTS` on uninstall. |
+| **Uninstall** | Drop module tables and config (see `module-upgrade.mdc`). |
+| **Upgrade `ALTER ADD`** | Idempotent checks + safe `AFTER` / column order — see `module-upgrade.mdc`. |
+
+## Prefer `Db` helpers for writes
+
+```php
+$db->insert('cdiscount_product_option', [
+    'id_product' => (int) $idProduct,
+    'pm_title'   => pSQL($title),
+]);
+
+$db->update('cdiscount_product_option', [
+    'pm_title' => pSQL($title),
+], 'id_product = ' . (int) $idProduct);
+```
+
+`$where` in `update()` / `delete()` is **not** auto-escaped.
+
+## Raw SQL reads
+
+- Prefix tables with `_DB_PREFIX_` or `bqSQL(_DB_PREFIX_ . 'tablename')`.
+- `getRow` / `getValue` / `executeS` / `execute` — see Db class docs; do not double `LIMIT 1` on `getValue`.
+- Slave: `Db::getInstance(_PS_USE_SQL_SLAVE_)` only for read-only queries with no immediate prior write on the same table.
+
+## `DbQuery` (PS 1.7+)
+
+`where()` / `having()` strings are raw — cast integers and `pSQL()` string literals inside them.
+
+## Never
+
+- Raw superglobals in SQL.
+- `pSQL()` on identifiers or dynamic `ORDER BY` without whitelist.
+- `error_log` of full SQL in production.
+- Editing core PrestaShop schema.

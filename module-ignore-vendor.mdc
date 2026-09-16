@@ -1,0 +1,26 @@
+---
+description: Never edit or review vendor/ — third-party Composer dependencies only
+alwaysApply: true
+---
+
+# Module — ignore vendor/
+
+`vendor/` is Composer output (third-party packages). It is listed in `.gitignore` and must stay out of module work.
+
+## Do not
+
+- Edit, refactor, or "fix" any file under `vendor/`.
+- Run codemods, bulk replace scripts, or SQL/escape passes across `vendor/`.
+- Stage, commit, or describe `vendor/` changes in changelog entries or PR summaries.
+- Use `vendor/` hits to justify changes in first-party code unless the task is explicitly about a dependency upgrade.
+
+## If vendor appears modified
+
+- Treat it as accidental noise (e.g. a script ran too broadly).
+- Do **not** try to "complete" or normalize those edits.
+- Restore with `git checkout -- vendor` (or leave untouched and work only under module paths).
+- When searching the codebase, exclude `vendor/` (e.g. restrict globs to `classes/`, `functions/`, `controllers/`, `includes/`, `upgrade/`, `cdiscount.php`, etc.).
+
+## First-party scope
+
+Apply fixes and reviews only to module-owned paths: `cdiscount.php`, `classes/`, `controllers/`, `functions/`, `includes/`, `upgrade/`, `views/`, `translations/`, `tools/` (module tools, not Composer), and related project files — never `vendor/`.

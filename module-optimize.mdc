@@ -1,0 +1,42 @@
+---
+description: After code changes, review the branch diff and optimize systematically — consolidate, dedupe, remove dead code
+alwaysApply: true
+---
+
+# Module optimize — systematic branch cleanup
+
+Whenever you finish updating code on the current branch, run a **single coherent optimization pass** over everything the branch touches. Do not leave scattered one-off fixes, duplicate helpers, or half-finished refactors.
+
+## Before optimizing
+
+Materialise the full branch scope (same base as `module-changelog.mdc`: prefer `origin/master`, or `origin/main` if `origin/master` does not exist):
+
+```powershell
+# Prefer origin/master; use origin/main if origin/master does not exist
+git fetch origin master
+git diff --stat origin/master...HEAD
+git diff origin/master...HEAD
+```
+
+If `origin/master` does not exist, run the same commands against `origin/main` instead.
+
+Work from the diff — not from memory.
+
+## Optimization pass (one pass, not drive-by edits)
+
+1. **Group by concern** — schema, config, API wrapper, admin UI, cron, etc. Each concern should have one clear entry point; merge overlapping changes into the same class/file when they belong together.
+2. **Deduplicate** — collapse copy-pasted blocks into existing helpers; reuse module utilities (`Db` wrappers, loggers, constants) instead of new parallel implementations.
+3. **Remove dead code** — delete unused methods, variables, imports, config keys, SQL fragments, templates, and commented-out blocks introduced or left obsolete by this branch.
+4. **Align with neighbours** — naming, error handling, and SQL discipline must match the surrounding file and module (see `module-sql.mdc`, `module-logging.mdc`, `module-php.mdc`, `module-prestashop.mdc`).
+5. **Keep scope honest** — optimize what this branch changed or made redundant; do not unrelated-refactor files outside the branch diff unless the user asked.
+
+## What "systematic" means
+
+- ✅ One review of the branch diff → a short list of consolidation/deletion tasks → apply them together.
+- ❌ Tweaking one file now and promising to "clean up later" in another file.
+- ❌ Adding a second helper when an equivalent already exists in the module.
+- ❌ Leaving deprecated code paths "just in case" when the branch fully replaced them.
+
+## When done
+
+Re-run `git diff --stat <base>...HEAD` using the same base branch and confirm no redundant files or duplicate logic remain in the changed set.

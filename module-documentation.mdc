@@ -1,0 +1,59 @@
+---
+description: Scan and read in-repo documentation/ or document/ before API or third-party integration work
+alwaysApply: true
+---
+
+# Module documentation — read local specs first
+
+Before implementing, changing, or answering questions about an **external API**, **marketplace**, **carrier**, **payment**, or other **third-party service**, discover and read the authoritative files shipped in the repo. Do **not** rely on memory or generic web docs when local specs exist.
+
+## Where to look
+
+Scan the module repo root for:
+
+```
+documentation/**/*
+document/**/*
+```
+
+Common layouts in this workspace:
+
+| Repo pattern | Typical spec |
+|---|---|
+| `Prestashop-SAAS-Module` (Amazon) | `documentation/sp-api/MANIFEST.md` → `documentation/sp-api/models/**/*.json`; proxy mapping in `documentation/common-services/proxy-api-types.md` |
+| `Prestashop-Cdiscount` | `documentation/octopia-seller-api/Octopia-SellerAPI-<YYYY-MM-DD>.yml` |
+| `PrestaShop-SoNice-Etiquetage` | `documentation/openapi/doc.yaml` |
+| Other modules | `documentation/**/*.yaml`, `**/*.yml`, `**/*.json`, `**/*.md` |
+
+Prefer the **most recent dated** export when several versions exist. State which file version your answer or code targets.
+
+## When this rule applies
+
+- Adding or changing API wrappers, webhooks, cron imports, request/response parsing.
+- Claims about endpoints, fields, enums, status codes, deprecations, required headers.
+- Mapping third-party values to module constants or DB columns.
+
+## Workflow
+
+1. **List** — `documentation/` and `document/` (glob or directory listing).
+2. **Read** — open the relevant OpenAPI/Swagger YAML, vendor export, or markdown spec.
+3. **Implement** — match paths, types, and enum values from that file.
+4. **Cite** — when explaining behavior, reference the spec with file path and line range:
+
+```12:28:documentation/openapi/doc.yaml
+...exact lines...
+```
+
+For large YAML/OpenAPI files, cite the smallest relevant block. Note deprecated operations and version-specific enum values exactly as the spec labels them.
+
+## If the repo has no local spec
+
+- Say clearly that no `documentation/` / `document/` spec was found.
+- Do not invent request/response shapes.
+- External vendor docs are a fallback only — note they may differ from the integration version the module targets.
+
+## What this avoids
+
+- Code that matches an outdated or wrong API revision.
+- Answers that contradict the YAML/OpenAPI committed with the module.
+- Duplicating long spec excerpts in chat without pointing at the source file.

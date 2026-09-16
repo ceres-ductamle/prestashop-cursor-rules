@@ -1,0 +1,100 @@
+---
+description: Preserve the correct license header for each PHP file class — PrestaShop SA (OSL-3.0) for stub index.php, Feed.biz (Commercial) for substantive module code
+globs: **/*.php
+alwaysApply: true
+---
+
+# License headers
+
+This codebase has **two** license headers and they are NOT interchangeable. Each file has the one that matches its origin. When editing: preserve it exactly. When creating a new file: pick the correct one from the decision rule below.
+
+## Decision rule
+
+| File class | Header | Why |
+|---|---|---|
+| Stub `index.php` in any sub-directory (redirect-and-exit, anti-directory-listing) | **PrestaShop SA / OSL-3.0** | PrestaShop core boilerplate. Same content PrestaShop itself ships. Keep as-is. |
+| All other substantive PHP (`cdiscount.php`, `classes/*.php`, `controllers/*.php`, `functions/*.php`, `includes/*.php`, `upgrade/upgrade-*.php`, etc.) | **Feed.biz / Common-Services Commercial** | Proprietary module code authored by Feed.biz and sold under commercial license. |
+
+How to tell if a file is a "stub `index.php`": it lives in a sub-directory, its only logic is `header('Location: ../'); exit;` (plus cache headers), and its filename is literally `index.php`. The module root's own `index.php` is also this class.
+
+## Header A — Stub `index.php` (PrestaShop SA, OSL-3.0)
+
+Drop-in template for any new directory that needs anti-directory-listing:
+
+```php
+<?php
+/**
+ * Copyright since 2007 PrestaShop SA and Contributors
+ * PrestaShop is an International Registered Trademark & Property of PrestaShop SA
+ *
+ * NOTICE OF LICENSE
+ *
+ * This source file is subject to the Open Software License (OSL 3.0)
+ * that is bundled with this package in the file LICENSE.md.
+ * It is also available through the world-wide-web at this URL:
+ * https://opensource.org/licenses/OSL-3.0
+ * If you did not receive a copy of the license and are unable to
+ * obtain it through the world-wide-web, please send an email
+ * to license@prestashop.com so we can send you a copy immediately.
+ *
+ * DISCLAIMER
+ *
+ * Do not edit or add to this file if you wish to upgrade PrestaShop to newer
+ * versions in the future. If you wish to customize PrestaShop for your
+ * needs please refer to https://devdocs.prestashop.com/ for more information.
+ *
+ * @author    PrestaShop SA and Contributors <contact@prestashop.com>
+ * @copyright Since 2007 PrestaShop SA and Contributors
+ * @license   https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
+ */
+header('Expires: Mon, 26 Jul 1997 05:00:00 GMT');
+header('Last-Modified: ' . gmdate('D, d M Y H:i:s') . ' GMT');
+
+header('Cache-Control: no-store, no-cache, must-revalidate');
+header('Cache-Control: post-check=0, pre-check=0', false);
+header('Pragma: no-cache');
+
+header('Location: ../');
+exit;
+```
+
+## Header B — Substantive module code (Feed.biz / Common-Services, Commercial)
+
+Drop-in template for any new class, controller, function, helper, etc.:
+
+```php
+<?php
+/**
+ * NOTICE OF LICENSE
+ *
+ * This source file is subject to a commercial license from Feed.biz
+ * Use, copy, modification or distribution of this source file without written
+ * license agreement from Feed.biz is strictly forbidden.
+ * In order to obtain a license, please contact us: contact@common-services.com
+ * ...........................................................................
+ * INFORMATION SUR LA LICENCE D'UTILISATION
+ *
+ * L'utilisation de ce fichier source est soumise a une licence commerciale
+ * concedee par la societe Feed.biz.
+ * Toute utilisation, reproduction, modification ou distribution du present
+ * fichier source sans contrat de licence ecrit de la part de la Common-Services Co. Ltd. est
+ * expressement interdite.
+ * Pour obtenir une licence, veuillez contacter Common-Services Co., Ltd. a l'adresse: contact@common-services.com
+ *
+ * @author    <keep existing / your name>
+ * @copyright Copyright (c) Since 2011 Common Services Co Ltd / Feed.biz
+ * @license   Commercial license
+ */
+if (!defined('_PS_VERSION_')) {
+    exit;
+}
+```
+
+## Rules
+
+- **Never** replace Header A with Header B, or vice versa, on an existing file. The attribution must match the origin of the code.
+- **Never** shorten, translate, reformat, or strip either header.
+- **Never** stack both headers in one file.
+- When splitting or moving code out of an existing file, the new file gets the same header as the one it came from.
+- Keep the `@author` line as-is on existing files. On a brand-new Feed.biz-header file, set `@author` to the current author.
+- The `if (!defined('_PS_VERSION_')) { exit(...); }` guard belongs right after Header B. Header A does not need it (the stub redirects before any PrestaShop code runs).

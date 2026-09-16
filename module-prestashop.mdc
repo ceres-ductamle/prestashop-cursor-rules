@@ -1,0 +1,129 @@
+---
+description: PrestaShop 1.7-9.x compatibility and Marketplace validation requirements
+globs: **/*.php,**/*.tpl
+alwaysApply: true
+---
+
+# Module PrestaShop compatibility and Marketplace readiness
+
+Module code must run on PrestaShop **1.7.x, 8.x, and 9.x** unless the product scope says otherwise. PHP syntax limits live in `module-php.mdc`.
+
+- Do **not** add new PrestaShop 1.6-only code paths.
+- Existing 1.6 fallbacks may stay untouched; do not extend them.
+- `config.xml` `ps_versions_compliancy` min should be `1.7.0.0` for new work.
+- New Marketplace submissions must support the latest major PrestaShop version. As of the Marketplace docs, this means **9.x**.
+- For Marketplace-targeted modules, keep the module technical name stable across ZIP versions.
+
+Reference docs:
+- https://docs.cloud.prestashop.com/
+- https://docs.cloud.prestashop.com/2-technical-development-standards/
+- https://docs.cloud.prestashop.com/3-content-and-marketing-standards/
+- https://docs.cloud.prestashop.com/4-quality-standards-and-verified-plus/
+
+## Entrypoint guard
+
+Every PHP file must include the PrestaShop context guard near the top:
+
+```php
+if (!defined('_PS_VERSION_')) {
+    exit;
+}
+```
+
+Every directory should contain an `index.php` directory-protection file. The module root should include `.htaccess` protection when packaged for Marketplace distribution.
+
+## Core API (1.7+ baseline)
+
+```php
+$row = Db::getInstance()->getRow('SELECT ...');
+$val = Db::getInstance()->getValue('SELECT ...');
+Db::getInstance()->execute('INSERT ...');
+
+Configuration::get('KEY');
+Configuration::updateValue('KEY', $value);
+
+$ctx = Context::getContext();
+```
+
+SQL escaping: `module-sql.mdc`. Request validation: `module-input.mdc`.
+
+Configuration keys must be namespaced with the module prefix, for example `MYMODULE_API_KEY`, never generic names like `API_KEY` or `ENABLED`.
+
+## Version-gated features
+
+Branch when behaviour differs across 1.7 / 8 / 9:
+
+```php
+if (version_compare(_PS_VERSION_, '9.0.0', '>=')) {
+    // PS 9 path
+} elseif (version_compare(_PS_VERSION_, '8.0.0', '>=')) {
+    // PS 8 path (Symfony services, new admin patterns, …)
+} else {
+    // PS 1.7 path
+}
+```
+
+- Never `require` / `use` a class that exists only in PS 8+ at top level — load inside the guard.
+- Admin hooks, grid definitions, and container access differ by major — follow patterns already used in the same module file.
+- Declare precise compatibility in the main module constructor. Do not use `_PS_VERSION_` as the max value.
+
+```php
+$this->ps_versions_compliancy = [
+    'min' => '1.7.0.0',
+    'max' => '9.99.99',
+];
+```
+
+If a Marketplace product intentionally targets only PS 8/9, use the product's declared minimum version instead of the project default above.
+
+## Templates & assets
+
+- Module admin UI: follow the module's existing Smarty/Twig mix; do not assume Twig in PS 1.7.
+- BO CSS/JS: test on both legacy BO (1.7) and new theme (8+) when touching shared assets.
+- Load BO assets only where needed — see `module-security.mdc`.
+
+Smarty variables must be escaped unless the value is trusted HTML and explicitly reviewed:
+
+```smarty
+{$user_content|escape:'htmlall':'UTF-8'}
+{$url_param|escape:'url'}
+```
+
+Use `nofilter` only for controlled hook output or already-sanitised module HTML.
+
+## Marketplace technical rules
+
+Before considering a module Marketplace-ready:
+
+- Do not modify PrestaShop core files, core database tables, or other modules.
+- Prefer hooks over overrides. If an override is unavoidable, document why no hook can satisfy the requirement.
+- The module must produce zero errors, warnings, or notices with debug mode enabled.
+- All code, comments, and default text must be in English.
+- For SQL, validation, uploads, tokens, and logging, follow `module-sql.mdc`, `module-input.mdc`, `module-security.mdc`, and `module-logging.mdc`.
+- Do not use `eval`, `serialize` / `unserialize` for user-controlled data, or unrestricted `file_get_contents`, `include`, or path operations.
+- Use JSON for structured data storage/interchange and encode safely, for example `JSON_HEX_TAG | JSON_HEX_AMP`.
+- Hooks must be lightweight and exit early when the current controller/page is irrelevant.
+
+## Marketplace package and product page
+
+When preparing or reviewing a Marketplace release:
+
+- Package the standard module structure: `config.xml`, main module PHP file, protected directories, `views/`, `controllers/`, optional documented `override/`, `docs/`, and root `.htaccess`.
+- Product name should follow `[Primary Function]: [Brief Explanation]`, avoid "PrestaShop", "Module", version numbers, unlicensed brand names, and unsupported superlatives.
+- Short description is max 250 characters and should explain merchant value, not only technical implementation.
+- Document at least 3 distinct, measurable features and clear merchant/customer benefits.
+- Product icon must be exactly 256x256 JPG/PNG and must not use PrestaShop branding or unlicensed external logos.
+- Provide at least 3 screenshots per supported language, minimum 1000x1000, with realistic data and no contact information or watermarks.
+- User guide must be PDF, English mandatory, named like `readme_en.pdf`, and cover compatibility, PHP requirements, installation, configuration, features, troubleshooting, and FAQ.
+- Demo credentials, when provided, should use the Marketplace convention: `[email protected]` / `demodemo`, with restricted back-office permissions and regular reset.
+
+## Verified+ readiness
+
+To keep a module eligible for Verified+ style review, preserve:
+
+- Clean PrestaShop Validator scan.
+- No known security vulnerabilities.
+- Minimal, justified overrides only.
+- Error-free execution on the supported PHP versions for each supported PrestaShop major.
+- Compatibility with at least the 2 latest PrestaShop major versions when the product claims broad support.
+- No debug-mode errors across supported versions.

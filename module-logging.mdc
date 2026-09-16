@@ -1,0 +1,39 @@
+---
+description: Use the module structured logger — not var_dump, print_r, dd, or error_log
+globs: **/*.php
+alwaysApply: true
+---
+
+# Module logging
+
+Always log through the module's structured logger. Debug prints in committed code are forbidden.
+
+## Logger hierarchy
+
+1. **Module logger** — `CdiscountLogger`, `AmazonLogger`, `FnacLogger`, … when present.
+2. **`PrestaShopLogger::addLog(...)`** — severity `1`=info, `2`=warning, `3`=error, `4`=major.
+3. File writes under module `log/` — only if the module logger already uses that pattern.
+
+```php
+// ✅ GOOD
+CdiscountLogger::log('OrderImport', 'Skipped order', ['order_id' => $orderId]);
+
+// ❌ BAD
+var_dump($response);
+dd($response);
+error_log('something went wrong');
+```
+
+## What to log
+
+- Failed outbound API calls — URL without credentials, HTTP status, short body excerpt, context IDs.
+- Caught exceptions unless the caller already logs.
+- Merchant-visible state transitions (imports, integrations, mapping fallbacks).
+
+## What NOT to log
+
+- Tokens, OAuth secrets, `Authorization` headers.
+- Full XML/JSON payloads over a few KB.
+- Customer PII beyond what order notes already contain.
+
+See `module-security.mdc` — never log URL tokens.

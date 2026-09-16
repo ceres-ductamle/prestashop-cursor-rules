@@ -1,0 +1,66 @@
+---
+description: Never put module-specific fixes in classes/seller_partner — build overwrites it from shopify-amazon-spapi-connector
+alwaysApply: true
+---
+
+# Module — ignore / do not customize `classes/seller_partner/`
+
+`classes/seller_partner/` is a **build-time vendored copy** of
+`shopify-amazon-spapi-connector`, not module-owned business logic.
+
+## How the overwrite works
+
+Amazon package builds enable `BUILD_INTEGRATE_SELLER_PARTNER=1`:
+
+| Profile script | Source folder | Package dir |
+|---|---|---|
+| `../build_amazon_saas_module.sh` | `Prestashop-SAAS-Module` | `amazonsaas` |
+| `../build_amazon_module.sh` | `Prestashop-Amazon` | `amazon` |
+
+Both call `../build_module.sh` -> `integrate_seller_partner()`:
+
+1. Resolve connector path (`SHOPIFY_SPAPI_PATH` or `SHOPIFY_SPAPI_CANDIDATES`).
+2. **`rm -rf ./classes/seller_partner`** inside the build package directory.
+3. **`rsync`** the entire connector tree into `./classes/seller_partner/`.
+
+That runs **after** the module source is copied into the package. Any local edits under `classes/seller_partner/` are wiped from the ZIP and **never ship**.
+
+Legacy Amazon also lists `/classes/seller_partner/` in `.gitignore` (working tree only). SaaS may keep a local copy for development; the ZIP still replaces it on every Amazon build.
+
+## Do not
+
+- Edit, refactor, or "fix" product/feed/listing business logic under
+  `classes/seller_partner/` (including `feeds/`, `feeds/json/`, `catalog/`, ...).
+- Put PrestaShop-module-only behaviour (WINE `item_volume`, profile rules,
+  marketplace-specific feed tweaks, etc.) in connector classes.
+- Rely on changes under `seller_partner/` surviving `build_amazon_saas_module.sh`
+  or `build_amazon_module.sh`.
+
+## Where module-specific logic belongs
+
+| Need | Put it in |
+|---|---|
+| JSON listing attributes before send | `classes/AmazonJsonFeedsSending.php` |
+| Catalog export / profile field assembly | `functions/products_json.php`, `functions/profiles_json.php`, `functions/json_operations.php` |
+| Shared WINE volume helpers (SaaS) | `classes/amazon.wine.volume.class.php` |
+| Module-owned SP feed helpers that must ship | `classes/` outside `seller_partner/` (e.g. legacy `AmazonSPFeedJsonMessageFulfillmentChannelSwitch`) |
+| Connector / SP-API client bugs | Fix in `shopify-amazon-spapi-connector`, then rebuild the module ZIP |
+
+## If `seller_partner/` appears modified for a module ticket
+
+- Prefer reverting those files unless the change is a deliberate connector sync.
+- Re-implement the behaviour in module-owned paths above.
+- Do not treat `seller_partner/` hits as first-party scope in reviews or codemods.
+
+## Match adapters to the shipped connector tree
+
+Module adapters outside `seller_partner/` (e.g. `AmazonLogger`, quota / endpoint
+handlers) must resolve interfaces and classes **as they exist under
+`classes/seller_partner/` after connector sync** — not from a stale local copy
+that may still carry a different `namespace`.
+
+- Connector / SP-API bugs: fix in `shopify-amazon-spapi-connector`, then rebuild
+  the module ZIP.
+- Do **not** "paper over" a mismatch by adding or changing `namespace` only in
+  the SaaS/local `classes/seller_partner/` tree — that copy is wiped on build and
+  never ships.

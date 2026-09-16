@@ -1,0 +1,78 @@
+---
+description: Keep CHANGELOG.txt in sync with the real diff; write short, human-readable release notes
+alwaysApply: true
+---
+
+# Module changelog — diff against base branch
+
+Before editing `CHANGELOG.txt` or preparing a release commit, materialise the full diff of the current branch against the default remote base branch: use `origin/master`, or `origin/main` if `origin/master` does not exist. Never paraphrase from memory.
+
+## Required commands
+
+```powershell
+# Prefer origin/master; use origin/main if origin/master does not exist
+git fetch origin master
+git log --oneline origin/master..HEAD
+git diff --stat origin/master...HEAD
+git diff origin/master...HEAD -- "*.php" "*.tpl" "*.js" "*.css" "*.sql" "config.xml" "install.sql"
+```
+
+If `origin/master` does not exist, run the same commands against `origin/main` instead. Use the three-dot form `<base>...HEAD` so the diff reflects this branch's contribution from the common ancestor.
+
+## How to write each line (short and human-readable)
+
+- **One line per user-visible change** — short enough to read in a glance (avoid long compound sentences; split into two lines if needed).
+- **Audience:** merchants, support, and release readers — not the development team. Prefer plain language: what the shop gains, what was wrong before, or what to do next.
+- **Do not** put in the changelog: function, method, or class names; file paths; line numbers; database table names; HTTP option names; internal type names; or other implementation trivia. The diff already holds that. One may say "Cdiscount / Octopia" or "the module" when it helps the reader.
+- **Do** name the product area: e.g. product integration, order import, catalog tab, settings — in everyday words.
+- **Tone:** direct and clear; no filler; no copy-paste of stack traces, logs, or technical error strings unless a merchant must see them (rare).
+- Prefer the shortest wording that preserves meaning. Avoid filler words such as `now`, `currently`, `just`, or `successfully` unless they add necessary contrast.
+- If a change is only for developers and invisible in the product, a single short dev-facing line is OK, but still avoid class or file names — describe the *effect* (e.g. "internal cleanup for future maintenance").
+
+## Entry format
+
+`CHANGELOG.txt` uses four sub-sections under each version: `Added:`, `Fixed:`, `Updated:`, `Removed:`.
+
+Each subsection header is its own line: the label, a colon, **one trailing space**, then a newline (e.g. `Added: `). Bullet lines are indented with four spaces:
+
+```
+Added: 
+    - <short description> - <Month Nth, YYYY>
+```
+
+Date format: ordinal English date (`April 21st, 2026`, `March 3rd, 2026`). Match the style of earlier entries in the file.
+
+## Examples (style, not text to copy blindly)
+
+- Prefer: "Product export no longer times out on large catalogs when sending to Octopia."
+- Avoid: "`getMergedProductOptions` 4th arg + `Cdiscount::allowLongRunningScript` in `products_create.php`."
+- Prefer: "First-time product submission no longer failed when a reference contained an ampersand."
+- Avoid: "`xmlEncode` now escapes `&` before other entities in the product XML step."
+- Prefer: "Inventory report synchronization resumes over multiple cron passes."
+- Avoid: "Inventory report synchronization now resumes successfully over multiple cron passes."
+- Prefer: "Imports tab removed; category sync is only on the Categories tab."
+- Avoid: "Deleted `views/templates/admin/configure/tabs/imports.tpl`."
+
+## Classification
+
+- **Added** — new feature, new behaviour users can use
+- **Fixed** — incorrect behaviour is corrected
+- **Updated** — change that is not a new feature and not quite a bug (wording, performance users notice, non-breaking workflow tweaks, dependency or hosting-related tolerance)
+- **Removed** — a screen, setting, workflow, or integration path that existed before and is deliberately dropped; say what merchants no longer have or what to use instead when it is not obvious. Omit the `Removed` subsection entirely if nothing user-visible was removed.
+
+Translation-only or invisible refactors do not get a line unless they fix a visible problem. Purely internal file deletions with no merchant impact belong in **Updated** (or no line), not **Removed**.
+
+## Consistency with upgrade files
+
+For the version being released:
+
+1. Every `upgrade/upgrade-<version>.php` effect has a matching `CHANGELOG` line (often under `Updated:`; mention the upgrade in plain language if the merchant should know a migration ran).
+2. Every schema or config change in the diff has a matching upgrade file for the current or released version (see `module-upgrade.mdc` — do not bump `config.xml` unless the user asked).
+3. When the user requests a release, `config.xml` version matches the latest section header in `CHANGELOG.txt`.
+
+## Process
+
+1. Fetch the base branch (`origin/master`, or `origin/main` if `origin/master` does not exist) and run the required diff commands.
+2. Group by feature area, merchant impact first.
+3. Write or extend the `vX.Y.Z` section at the top: short lines, human-readable, no internal identifiers.
+4. Cross-check with `upgrade/upgrade-X.Y.Z.php` and `config.xml` as above.

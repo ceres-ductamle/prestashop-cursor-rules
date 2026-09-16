@@ -1,0 +1,67 @@
+---
+description: Validate request and form input with PrestaShop Validate — show BO success/error feedback before DB writes
+globs: **/*.php,**/*.tpl
+alwaysApply: true
+---
+
+# Module input — Validate & form feedback
+
+Check **shape and type** of user input here. After validation passes, escape for SQL with `module-sql.mdc`. Protect HTTP entrypoints with `module-security.mdc`.
+
+Per [PrestaShop good practices](https://devdocs.prestashop-project.org/9/modules/creation/good-practices/): validate customer/merchant input; show confirmation or error on configuration forms.
+
+## Read request data safely
+
+```php
+$idProduct = (int) Tools::getValue('id_product');
+$email     = Tools::getValue('email');
+$label     = Tools::getValue('label');
+```
+
+Never trust raw `$_GET` / `$_POST`. Always validate before `Configuration::updateValue`, `Db` writes, or outbound API calls.
+
+## PrestaShop `Validate` (common checks)
+
+| Input | Check |
+|---|---|
+| Integer ID | `Validate::isUnsignedId($id)` or cast `(int)` when zero is invalid |
+| Price / decimal | `Validate::isPrice($value)` |
+| Email | `Validate::isEmail($email)` |
+| URL | `Validate::isUrl($url)` |
+| Generic name / reference | `Validate::isGenericName($str)` or module-specific rule |
+| HTML fields | `Validate::isCleanHtml($html, true)` when rich text is allowed |
+| Module name token | `Validate::isModuleName($name)` |
+
+On failure: collect an error string and **do not** save or call external APIs.
+
+```php
+if (!Validate::isUnsignedId($idProduct)) {
+    $this->errors[] = $this->l('Invalid product ID.');
+    return;
+}
+```
+
+## Back-office forms
+
+Every settings / configuration submit must:
+
+1. **Validate** all fields (reject early with specific messages).
+2. **Save** only when `$this->errors` (or the module's error array) is empty.
+3. **Confirm** success — e.g. `$this->confirmations[] = $this->l('Settings updated.');` or the module's existing flash pattern.
+4. **Re-display** invalid values only after validation failed; never echo unescaped user input in templates.
+
+User-visible strings go through `$this->l()` and `module-translations.mdc` (EN/FR/ES parity).
+
+## Order of operations
+
+```
+Request → Validate (this rule) → token/session check (module-security) → SQL escape (module-sql) → Db / Configuration / API
+```
+
+Do not skip validation because `pSQL()` will be applied later — escaping is not validation.
+
+## Never
+
+- Save `Tools::getValue(...)` to DB or config without a `Validate` check or explicit whitelist.
+- Silent failure on invalid form posts (no error message).
+- Concatenate inside `$this->l()` — translate literals first (`module-translations.mdc`).

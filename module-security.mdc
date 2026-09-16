@@ -1,0 +1,66 @@
+---
+description: Protect cron, AJAX, and upload endpoints — tokens, module controllers, no standalone ajax files
+globs: **/*.php
+alwaysApply: true
+---
+
+# Module security — endpoints & uploads
+
+HTTP-callable module code must not run without authentication. Validate request **values** with `module-input.mdc`; escape for SQL with `module-sql.mdc`.
+
+## Entrypoint guard
+
+Every PHP file reachable from the web must start with:
+
+```php
+if (!defined('_PS_VERSION_')) {
+    exit;
+}
+```
+
+Cron scripts and includes loaded only from guarded parents may use the same check or `require` a parent that already defined `_PS_VERSION_`.
+
+## AJAX & front actions — no external ajax files
+
+Per [PrestaShop good practices](https://devdocs.prestashop-project.org/9/modules/creation/good-practices/): **do not** add standalone `ajax.php` (or similar) outside PrestaShop routing.
+
+| Pattern | Use |
+|---|---|
+| Front-office AJAX | `ModuleFrontController` + `module` / `controller` query params |
+| Back-office AJAX | `ModuleAdminController` or the module's existing admin controller pattern |
+| Long-running cron URL | Dedicated controller or cron script with **token check at the top** |
+
+Follow the **same token pattern** already used in the target module (`instant_token`, `verify_token`, `Tools::getAdminTokenLite`, etc.) — do not invent a second scheme in parallel.
+
+```php
+// ✅ GOOD — reject before any work (pattern varies per module; match neighbours)
+$token = Tools::getValue('token');
+if (!$token || $token !== Tools::getAdminTokenLite('AdminModules')) {
+    exit;
+}
+```
+
+## Token required
+
+- **Cron URLs** and **background import/export URLs**: mandatory secret/token query param or admin session; return `403` / `exit` on mismatch.
+- **Never** rely on obscurity (`/modules/foo/cron.php` with no check).
+- Tokens in URLs must not be logged (see `module-logging.mdc`).
+
+## File uploads
+
+When the module accepts uploads:
+
+1. Whitelist extensions and check MIME (`mime_content_type` or `finfo_file`) — do not trust `$_FILES['type']`.
+2. Reject executable types (`.php`, `.phtml`, `.htaccess`, …).
+3. Store under a module-owned directory from `module-paths.mdc`, not web-served paths unless strictly required.
+4. Validate size limits before moving the file.
+
+## Back-office assets
+
+Load BO JavaScript/CSS only where needed — e.g. when `Tools::getValue('configure') === $this->name` in `hookDisplayBackOfficeHeader` (or the module's equivalent hook). Do not inject assets on every admin page.
+
+## Never
+
+- Standalone ajax endpoints bypassing PrestaShop bootstrap.
+- Cron or import URLs without a token check.
+- Saving uploads with the client-provided filename unchanged in a public directory.

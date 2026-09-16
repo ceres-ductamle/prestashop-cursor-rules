@@ -1,0 +1,53 @@
+---
+description: PrestaShop path constants and writable directories — no relative config hops, use cache/var not module zip
+globs: **/*.php
+alwaysApply: true
+---
+
+# Module paths & writable files
+
+Resolve paths with **PrestaShop constants**, not relative hops through `dirname(__FILE__)`. Per [PrestaShop good practices](https://devdocs.prestashop-project.org/9/modules/creation/good-practices/): avoid writing generated files inside the module ZIP tree when a shop-level directory exists.
+
+Security-sensitive URL/token rules: `module-security.mdc`. PHP / PS version branching: `module-php.mdc`, `module-prestashop.mdc`.
+
+## Resolve paths with constants
+
+| Need | Constant / pattern |
+|---|---|
+| Module root on disk | `_PS_MODULE_DIR_ . '<modulename>/'` |
+| Module file from main class | `$this->getLocalPath()` when inside `Module` |
+| Shop root | `_PS_ROOT_DIR_` |
+| Config | `_PS_CONFIG_DIR_` |
+| Cache (env-specific) | `_PS_CACHE_DIR_` |
+
+```php
+// ❌ BAD — breaks when structure or symlinks differ
+require_once dirname(__FILE__) . '/../../config/config.inc.php';
+
+// ✅ GOOD — already bootstrapped in controllers; for requires inside module:
+require_once _PS_MODULE_DIR_ . 'cdiscount/classes/cdiscount.tools.class.php';
+```
+
+Do not rebuild web URLs by hand when the module already exposes `$this->_path` / `$this->url` — follow existing patterns in that module.
+
+## Where to write generated files
+
+| Kind | Location | Why |
+|---|---|---|
+| **Cache / temp** (exports, locks, progress files) | `_PS_CACHE_DIR_ . '<modulename>/'` | Cleared with shop cache; survives module upgrade |
+| **Durable module data** (shared across deploys) | `_PS_ROOT_DIR_ . 'var/modules/<modulename>/'` on PS 8+; on older shops use the same path if `var/modules` exists, else document fallback in the module | Kept when module is uninstalled/reinstalled |
+| **Shipped assets** (icons, default XML) | Inside module `views/`, `docs/` | Read-only, part of git |
+
+Avoid growing log/export directories under `/modules/<name>/` on new code — harder in clustered hosting and wiped on naive redeploys.
+
+Create directories with `0755` (or match parent permissions) and check `is_writable` before writing; fail with a clear BO message (see `module-input.mdc`).
+
+## Version note
+
+If `var/modules` is missing on an old 1.7 shop, follow the fallback already used in that module's codebase — do not introduce a third pattern.
+
+## Never
+
+- `dirname(__FILE__) . '/../../…'` to reach `config.inc.php` or core files.
+- Assume `getcwd()` or `$_SERVER['DOCUMENT_ROOT']` for module paths.
+- Write cache/temp files next to PHP sources under `classes/` or `controllers/`.
