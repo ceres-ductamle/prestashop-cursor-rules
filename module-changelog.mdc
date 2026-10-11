@@ -1,5 +1,5 @@
 ---
-description: Keep CHANGELOG.txt in sync with the real diff; write short, human-readable release notes
+description: Keep CHANGELOG.txt in sync with the real diff; short human-readable lines; no duplicates within a version
 alwaysApply: true
 ---
 
@@ -27,6 +27,8 @@ If `origin/master` does not exist, run the same commands against `origin/main` i
 - **Do** name the product area: e.g. product integration, order import, catalog tab, settings — in everyday words.
 - **Tone:** direct and clear; no filler; no copy-paste of stack traces, logs, or technical error strings unless a merchant must see them (rare).
 - Prefer the shortest wording that preserves meaning. Avoid filler words such as `now`, `currently`, `just`, or `successfully` unless they add necessary contrast.
+- Name the concrete symptom. Do not write "no longer fails", "no longer errors", or "works again" by itself. Say what stopped, what the merchant saw, and what completes afterward. "No longer times out on large catalogs" is acceptable because the failure is named. "No longer fails" is not.
+- Older released lines that already say "no longer fails" and then name the cause (for example DNI, a duplicated SKU, or an invalid schema) stay as released history. Do not rewrite them only to match this wording.
 - If a change is only for developers and invisible in the product, a single short dev-facing line is OK, but still avoid class or file names — describe the *effect* (e.g. "internal cleanup for future maintenance").
 
 ## Entry format
@@ -44,6 +46,8 @@ Date format: ordinal English date (`April 21st, 2026`, `March 3rd, 2026`). Match
 
 ## Examples (style, not text to copy blindly)
 
+- Prefer: "Creating and sending VAT invoices on PrestaShop 8 and 9 stopped with a server error while generating the invoice PDF."
+- Avoid: "Creating and sending VAT invoices no longer fails on PrestaShop 8 and 9."
 - Prefer: "Product export no longer times out on large catalogs when sending to Octopia."
 - Avoid: "`getMergedProductOptions` 4th arg + `Cdiscount::allowLongRunningScript` in `products_create.php`."
 - Prefer: "First-time product submission no longer failed when a reference contained an ampersand."
@@ -62,17 +66,27 @@ Date format: ordinal English date (`April 21st, 2026`, `March 3rd, 2026`). Match
 
 Translation-only or invisible refactors do not get a line unless they fix a visible problem. Purely internal file deletions with no merchant impact belong in **Updated** (or no line), not **Removed**.
 
+## No duplicates — keep lines consistent
+
+Before adding any line, read the existing `CHANGELOG.txt` (especially the current version section).
+
+- **Do not add** a new changelog line if the same user-visible change is already recorded — same meaning counts as a duplicate even when the wording differs.
+- **Update** an existing line in the **same version** only when the change itself evolved (scope, behaviour, or merchant impact differs from what the line currently says). Prefer editing that line over appending a second one.
+- Do **not** rewrite lines from older version sections; leave released history alone.
+- Across the whole file (and within one version), lines must stay consistent and non-overlapping: one change → one line. Merge or rephrase rather than stack near-duplicates.
+
 ## Consistency with upgrade files
 
 For the version being released:
 
-1. Every `upgrade/upgrade-<version>.php` effect has a matching `CHANGELOG` line (often under `Updated:`; mention the upgrade in plain language if the merchant should know a migration ran).
+1. Every `upgrade/upgrade-<version>.php` effect has a matching `CHANGELOG` line (often under `Updated:`; mention the upgrade in plain language if the merchant should know a migration ran). If a suitable line already exists, do not add another.
 2. Every schema or config change in the diff has a matching upgrade file for the current or released version (see `module-upgrade.mdc` — do not bump `config.xml` unless the user asked).
 3. When the user requests a release, `config.xml` version matches the latest section header in `CHANGELOG.txt`.
 
 ## Process
 
 1. Fetch the base branch (`origin/master`, or `origin/main` if `origin/master` does not exist) and run the required diff commands.
-2. Group by feature area, merchant impact first.
-3. Write or extend the `vX.Y.Z` section at the top: short lines, human-readable, no internal identifiers.
-4. Cross-check with `upgrade/upgrade-X.Y.Z.php` and `config.xml` as above.
+2. Read the existing `CHANGELOG.txt` for the current version; note what is already covered.
+3. Group by feature area, merchant impact first; skip changes that already have a line.
+4. Write new lines or update existing ones in the `vX.Y.Z` section at the top only — short, human-readable, no internal identifiers, no duplicates.
+5. Cross-check with `upgrade/upgrade-X.Y.Z.php` and `config.xml` as above.
