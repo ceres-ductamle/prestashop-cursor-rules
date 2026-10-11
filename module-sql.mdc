@@ -69,8 +69,27 @@ $db->update('cdiscount_product_option', [
 ## Raw SQL reads
 
 - Prefix tables with `_DB_PREFIX_` or `bqSQL(_DB_PREFIX_ . 'tablename')`.
-- `getRow` / `getValue` / `executeS` / `execute` — see Db class docs; do not double `LIMIT 1` on `getValue`.
+- `executeS` / `execute` — see Db class docs.
 - Slave: `Db::getInstance(_PS_USE_SQL_SLAVE_)` only for read-only queries with no immediate prior write on the same table.
+
+### `getValue` / `getRow` — never add outer `LIMIT 1`
+
+PrestaShop `Db::getValue()` and `Db::getRow()` **append** `LIMIT 1` themselves. An outer `LIMIT 1` in the SQL string becomes `LIMIT 1 LIMIT 1` → MariaDB/MySQL **1064** near `LIMIT 1`.
+
+`LIMIT 1` inside a **subquery** is fine. `executeS` / `execute` do **not** auto-append — keep their `LIMIT` as needed.
+
+```php
+// BAD — double LIMIT 1 with getValue / getRow
+$sql = 'SELECT 1 FROM `' . bqSQL(_DB_PREFIX_ . 'amazon_product_option') . '`
+    WHERE `id_product` = ' . (int) $idProduct . '
+    LIMIT 1';
+Db::getInstance()->getValue($sql);
+
+// GOOD
+$sql = 'SELECT 1 FROM `' . bqSQL(_DB_PREFIX_ . 'amazon_product_option') . '`
+    WHERE `id_product` = ' . (int) $idProduct;
+Db::getInstance()->getValue($sql);
+```
 
 ## `DbQuery` (PS 1.7+)
 
