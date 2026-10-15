@@ -37,11 +37,13 @@ All rules use the **`module-{topic}.mdc`** prefix (`alwaysApply: true` where not
 | `module-upgrade.mdc` | `upgrade-<version>.php`; no auto version bump |
 | `module-documentation.mdc` | Scan `documentation/` / `document/` before API or third-party work |
 | `module-ignore-seller-partner.mdc` | Amazon only: never customize `classes/seller_partner/`; build overwrites it |
+| `module-build-sources.mdc` | Which `build_*_module.sh` packages each module; `common/*.class.php` comes from `Prestashop-Marketplaces-Common-Classes` |
 
 ### How module rules fit together
 
 ```
 module-documentation (read local API specs) — before external API work
+module-build-sources (which repo owns common/ and seller_partner/) — before editing those trees
 module-input → module-security → module-sql → Db / API
 module-paths (file locations) — independent
 module-php + module-prestashop (language / platform) — all PHP edits

@@ -1,0 +1,66 @@
+---
+description: Module ZIPs are built by build_*_module.sh — common/ classes come from Prestashop-Marketplaces-Common-Classes
+alwaysApply: true
+---
+
+# Module build sources
+
+Edit the **git repo that owns the file**, then package with the matching script. A file under `modules/<name>/common/` in a shop or ZIP is usually not in that module's git tree.
+
+Scripts live in `C:\Users\Windows 10\projects\prestashop\` (parent of the module repos). Run them from that directory. Each `build_*_module.sh` calls `build_module.sh`.
+
+| Build | Source repo | Package dir | Injected at build |
+|---|---|---|---|
+| `build_amazon_module.sh` | `Prestashop-Amazon` | `amazon` | `common/` + `classes/seller_partner/` |
+| `build_amazon_saas_module.sh` | `Prestashop-SAAS-Module` | `amazonsaas` | `classes/seller_partner/` only (`common/` is **not** replaced) |
+| `build_cdiscount_module.sh` | `PrestaShop-Cdiscount` | `cdiscount` | `common/` |
+| `build_fnac_module.sh` | `PrestaShop-Fnac` | `fnac` | `common/` |
+| `build_mirakl_module.sh` | `Prestashop-Mirakl-v2` | `mirakl` | `common/` |
+| `build_rakuten_france_module.sh` | `Prestashop-Priceminister` | `priceminister` | `common/` |
+| `build_spartoo_module.sh` | `Prestashop-Spartoo` | `spartoo` | `common/` |
+| `build_so_colissimo_flexibilite_module.sh` | `PrestaShop-Soflexibility` | `soflexibilite` | `common/` |
+| `build_so_colissimo_liberte_module.sh` | `PrestaShop-Soliberte` | `soliberte` | `common/` |
+| `build_sonice_etiquetage_module.sh` | `PrestaShop-SoNice-Etiquetage` | `sonice_etiquetage` | `common/` |
+| `build_sonice_pro_module.sh` | `PrestaShop-Sonice-Pro` | `sonicepro` | `common/` |
+| `build_sonice_retour_module.sh` | `PrestaShop-Sonice-Retour` | `sonice_retour` | `common/` |
+| `build_sonice_suivi_de_colis_module.sh` | `PrestaShop-SoNice-Suivi` | `sonice_suivicolis` | `common/` |
+
+`seller_partner/` rules: `module-ignore-seller-partner.mdc`.
+
+## Where `common/*.class.php` comes from
+
+When `BUILD_INTEGRATE_COMMON_DEPS=1` (the default; Amazon legacy on; **Amazon SaaS off**), `build_module.sh` copies:
+
+`C:\Users\Windows 10\projects\prestashop\Prestashop-Marketplaces-Common-Classes`
+
+into the package `common/` folder. Shipped classes:
+
+`tools.class.php` (`CommonTools`), `configuration.class.php`, `configuration_check.class.php`, `certificates.class.php`, `cart.class.php`, `order.class.php`, `support.class.php`, `validate.class.php`, `zip.class.php`.
+
+Marketplace classes such as `classes/cdiscount.tools.class.php` **require** those files. They do not define them.
+
+```php
+// ❌ BAD — file is not in the module repo; the next build replaces common/
+// editing PrestaShop-Cdiscount/common/tools.class.php
+
+// ✅ GOOD — shared helper for every marketplace that injects common/
+// editing Prestashop-Marketplaces-Common-Classes/tools.class.php
+// then: ./build_cdiscount_module.sh
+```
+
+## Where to change a class
+
+| You need to change | Edit |
+|---|---|
+| `CommonTools` or another `common/*.class.php` for every module that injects `common/` | `Prestashop-Marketplaces-Common-Classes`, then rebuild each affected module |
+| Behaviour of one marketplace only | That module's own `classes/`, `functions/`, `controllers/` — not a copy of the shared class |
+| Amazon SaaS `common/` | `Prestashop-SAAS-Module/common/` (committed; build does not refresh it from Common-Classes) |
+| `classes/seller_partner/` | `shopify-amazon-spapi-connector`, then `build_amazon_module.sh` or `build_amazon_saas_module.sh` |
+
+If the module git tree already contains `common/<file>`, that copy is rsync'd **on top** of Common-Classes and wins for that module only. Use an overlay only for a deliberate one-module fork. Amazon gitignores `/common/` — do not commit fixes there.
+
+## Do not
+
+- Patch a generated package directory or ZIP. The build deletes the package dir after zipping.
+- Add `common/tools.class.php` (or the other shared classes) into a module repo to "fix" a missing file. Point the change at Common-Classes.
+- Assume Amazon SaaS picks up a Common-Classes edit. Its build leaves `common/` as stored in `Prestashop-SAAS-Module`.
