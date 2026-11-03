@@ -33,7 +33,7 @@ All rules use the **`module-{topic}.mdc`** prefix (`alwaysApply: true` where not
 | `module-input.mdc` | `Validate` + BO form success/error feedback |
 | `module-sql.mdc` | SQL injection; `bqSQL`/`pSQL`; Db helpers; schema DDL |
 | `module-logging.mdc` | Module logger; no `var_dump` / `dd` |
-| `module-translations.mdc` | md5 keys; EN/FR/ES parity; `l()` usage |
+| `module-translations.mdc` | md5 keys; parity across every `translations/*.php`; `l()` usage |
 | `module-upgrade.mdc` | `upgrade-<version>.php`; no auto version bump |
 | `module-documentation.mdc` | Scan `documentation/` / `document/` before API or third-party work |
 | `module-ignore-seller-partner.mdc` | Amazon only: never customize `classes/seller_partner/`; build overwrites it |

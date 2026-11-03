@@ -50,7 +50,7 @@ Every settings / configuration submit must:
 3. **Confirm** success — e.g. `$this->confirmations[] = $this->l('Settings updated.');` or the module's existing flash pattern.
 4. **Re-display** invalid values only after validation failed; never echo unescaped user input in templates.
 
-User-visible strings go through `$this->l()` and `module-translations.mdc` (EN/FR/ES parity).
+User-visible strings go through `$this->l()` and `module-translations.mdc` (parity across every `translations/*.php`).
 
 ## Order of operations
 
