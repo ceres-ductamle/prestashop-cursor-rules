@@ -1,12 +1,12 @@
 ---
-description: Translation hygiene — EN/FR/ES parity and md5 key convention
+description: Translation hygiene — parity across every translations/*.php and md5 key convention
 globs: **/translations/*.php,**/*.tpl,**/*.php
 alwaysApply: true
 ---
 
 # Module translations
 
-Every user-visible string uses PrestaShop's translation layer in **all three** files: `translations/en.php`, `fr.php`, `es.php`. EN is source of truth.
+Every user-visible string uses PrestaShop's translation layer in **every** `translations/*.php` language file the module already has (`en.php`, `fr.php`, `es.php`, `it.php`, `de.php`, and any other ISO file). EN is source of truth. `translations/index.php` is the anti-listing stub, not a language file.
 
 ## Key convention
 
@@ -33,10 +33,10 @@ $this->l('Label text');
 
 1. Add literal in template / PHP.
 2. Run `tools/clean_module_translations.php` if the module provides it.
-3. Add key to `en.php`, mirror in `fr.php` and `es.php`.
+3. Add the key to `en.php`, then mirror it in every other `translations/*.php` (`fr.php`, `es.php`, `it.php`, …). Same key, translated value. Do not leave a language file without the new key.
 
 ## Removing a string
 
-Delete usage first, then remove the key from all three files. Keep `translations/index.php` (anti-listing stub).
+Delete usage first, then remove the key from every `translations/*.php`. Keep `translations/index.php`.
 
 Form messages from `module-input.mdc` use `$this->l()` and follow the same parity rules.
