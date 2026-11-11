@@ -55,9 +55,22 @@ Marketplace classes such as `classes/cdiscount.tools.class.php` **require** thos
 | `CommonTools` or another `common/*.class.php` for every module that injects `common/` | `Prestashop-Marketplaces-Common-Classes`, then rebuild each affected module |
 | Behaviour of one marketplace only | That module's own `classes/`, `functions/`, `controllers/` — not a copy of the shared class |
 | Amazon SaaS `common/` | `Prestashop-SAAS-Module/common/` (committed; build does not refresh it from Common-Classes) |
-| `classes/seller_partner/` | `shopify-amazon-spapi-connector`, then `build_amazon_module.sh` or `build_amazon_saas_module.sh` |
+| `classes/seller_partner/` | `shopify-amazon-spapi-connector`, then copy the changed files into every source-tree `seller_partner/` that exists, then `build_amazon_module.sh` or `build_amazon_saas_module.sh` |
 
 If the module git tree already contains `common/<file>`, that copy is rsync'd **on top** of Common-Classes and wins for that module only. Use an overlay only for a deliberate one-module fork. Amazon gitignores `/common/` — do not commit fixes there.
+
+## Sync seller_partner copies
+
+Connector path: `C:\Users\Windows 10\projects\shopify\shopify-amazon-spapi-connector`
+
+After changing a file there, copy that same relative path to:
+
+- `C:\Users\Windows 10\projects\prestashop\Prestashop-SAAS-Module\classes\seller_partner\`
+- `C:\Users\Windows 10\projects\prestashop\Prestashop-Amazon\classes\seller_partner\` when that directory exists (legacy Amazon gitignores it; skip if absent)
+
+Copy file contents. Keep copy-only lines that are already part of that tree, such as `if (!defined('_PS_VERSION_')) { exit; }` on PHP files that have it. Do not invent module-only behavior in the copy.
+
+The ZIP still comes from the connector at build time. The copy is so source checkouts match the connector before the next build.
 
 ## Do not
 

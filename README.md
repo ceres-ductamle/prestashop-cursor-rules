@@ -36,8 +36,8 @@ All rules use the **`module-{topic}.mdc`** prefix (`alwaysApply: true` where not
 | `module-translations.mdc` | md5 keys; parity across every `translations/*.php`; `l()` usage |
 | `module-upgrade.mdc` | `upgrade-<version>.php`; no auto version bump |
 | `module-documentation.mdc` | Scan `documentation/` / `document/` before API or third-party work |
-| `module-ignore-seller-partner.mdc` | Amazon only: never customize `classes/seller_partner/`; build overwrites it |
-| `module-build-sources.mdc` | Which `build_*_module.sh` packages each module; `common/*.class.php` comes from `Prestashop-Marketplaces-Common-Classes` |
+| `module-ignore-seller-partner.mdc` | Amazon only: never customize `classes/seller_partner/`; edits allowed only as a connector sync; build overwrites it |
+| `module-build-sources.mdc` | Which `build_*_module.sh` packages each module; `common/*.class.php` from Common-Classes; after connector edits, sync source-tree `seller_partner/` copies |
 
 ### How module rules fit together
 

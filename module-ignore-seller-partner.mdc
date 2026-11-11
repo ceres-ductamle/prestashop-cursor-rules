@@ -48,7 +48,7 @@ Legacy Amazon also lists `/classes/seller_partner/` in `.gitignore` (working tre
 
 ## If `seller_partner/` appears modified for a module ticket
 
-- Prefer reverting those files unless the change is a deliberate connector sync.
+- A `seller_partner/` edit is allowed only as a sync from `shopify-amazon-spapi-connector`, in the same change as the connector edit, following `module-build-sources.mdc`. Revert any other `seller_partner/` edit.
 - Re-implement the behaviour in module-owned paths above.
 - Do not treat `seller_partner/` hits as first-party scope in reviews or codemods.
 
