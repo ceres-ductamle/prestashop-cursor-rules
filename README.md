@@ -37,12 +37,14 @@ All rules use the **`module-{topic}.mdc`** prefix (`alwaysApply: true` where not
 | `module-upgrade.mdc` | `upgrade-<version>.php`; no auto version bump |
 | `module-documentation.mdc` | Scan `documentation/` / `document/` before API or third-party work |
 | `module-ignore-seller-partner.mdc` | Amazon only: never customize `classes/seller_partner/`; edits allowed only as a connector sync; build overwrites it |
+| `module-amazon-webservice.mdc` | Amazon only: SP-API goes through Amazon-Webservice; edit the WSL proxy at `/var/www/projects/shopify/Amazon-Webservice`, not a stale Windows checkout or `classes/seller_partner/` |
 | `module-build-sources.mdc` | Which `build_*_module.sh` packages each module; `common/*.class.php` from Common-Classes; after connector edits, sync source-tree `seller_partner/` copies |
 
 ### How module rules fit together
 
 ```
 module-documentation (read local API specs) — before external API work
+module-amazon-webservice (SP-API calls and proxy allow-lists) — Amazon repos only
 module-build-sources (which repo owns common/ and seller_partner/) — before editing those trees
 module-input → module-security → module-sql → Db / API
 module-paths (file locations) — independent
@@ -57,9 +59,10 @@ Each concern has one file. Cross-references only — no duplicated content.
 
 Most canonical rules go to **all** target repos. Use `$ExcludeByRule` / `$IncludeByRule` in `sync-rules.ps1` only when a rule must be scoped to specific repos.
 
-Current repo-scoped rule:
+Current repo-scoped rules:
 
 - `module-ignore-seller-partner.mdc` -> `Prestashop-Amazon`, `Prestashop-SAAS-Module`
+- `module-amazon-webservice.mdc` -> `Prestashop-Amazon`, `Prestashop-SAAS-Module`
 
 Retired filenames are listed in `$ObsoleteRules`.
 

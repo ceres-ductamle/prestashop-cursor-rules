@@ -60,6 +60,10 @@ $IncludeByRule = @{
         'Prestashop-Amazon',
         'Prestashop-SAAS-Module'
     )
+    'module-amazon-webservice.mdc' = @(
+        'Prestashop-Amazon',
+        'Prestashop-SAAS-Module'
+    )
 }
 
 # Renamed or removed rules — deleted from every target repo on sync.

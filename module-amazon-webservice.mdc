@@ -1,0 +1,38 @@
+---
+description: Amazon SP-API goes through Amazon-Webservice — edit the WSL proxy, not a stale Windows checkout or seller_partner
+alwaysApply: true
+---
+
+# Module — Amazon Webservice proxy
+
+Amazon legacy (`Prestashop-Amazon`) and Amazon SaaS (`Prestashop-SAAS-Module`) both call SP-API through the **Amazon-Webservice** proxy.
+
+Production base URL: `https://amazon-webservice.common-services.com`, from `AmazonWebserviceConnector::proxyEndpoint()` in each module's `classes/webservice/`. Paths are the constants in `classes/webservice/AmazonWebserviceAPI.php` (orders V2026, feeds, reports, catalog, and the rest).
+
+## Source of truth
+
+| Role | Path |
+|---|---|
+| **Proxy (source of truth)** | `/var/www/projects/shopify/Amazon-Webservice` |
+| Cron app (not this proxy) | `/var/www/projects/prestashop/Prestashop-SAAS` — `https://amz-saas-ps.common-services.com/api` |
+
+On Windows/WSL, edit `/var/www/projects/shopify/Amazon-Webservice`. Do not treat `C:\Users\Windows 10\projects\shopify\Amazon-Webservice` as the running copy; it can be stale.
+
+A change there is not deployed until that proxy is deployed. A module ZIP does not contain this app.
+
+`module-saas-webservice.mdc` covers `Prestashop-SAAS` only.
+
+## Legacy `seller_partner/`
+
+`classes/seller_partner/` still has the old proxy `https://mwsops2.common-services.com/`. Do not add new SP-API behaviour there.
+
+Route mapping stays in `Prestashop-SAAS-Module/documentation/common-services/proxy-api-types.md`. Read that file. Do not copy the route table into this rule.
+
+## Where to edit
+
+| Need | Edit |
+|---|---|
+| Request the module sends | That module's `classes/webservice/` |
+| Allow-list, validation, or SP-API mapping on the proxy | `/var/www/projects/shopify/Amazon-Webservice` |
+
+Do not "fix" a proxy reject by editing only the module, and do not invent proxy behaviour from a stale checkout.
